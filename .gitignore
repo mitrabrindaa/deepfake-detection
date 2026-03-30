@@ -42,7 +42,7 @@ data/
 datasets/
 
 # Training outputs (generated)
-artifacts/
+#artifacts/
 checkpoints/
 *.pt
 *.pth
