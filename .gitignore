@@ -1,0 +1,53 @@
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+.tox/
+.nox/
+.venv/
+venv/
+ENV/
+env/
+
+# Jupyter / notebooks
+.ipynb_checkpoints/
+*.nbconvert.ipynb
+
+# IDE
+.vscode/
+.idea/
+
+# OS / temp
+*.tmp
+*.temp
+*.swp
+
+# Cursor / editor state
+.cursor/
+
+# Data (usually huge / private)
+dataset/
+data/
+datasets/
+
+# Training outputs (generated)
+artifacts/
+checkpoints/
+*.pt
+*.pth
+*.onnx
+
+# Logs
+# *.log
+
