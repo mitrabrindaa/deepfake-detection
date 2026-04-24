@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deepfake Detector</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0f0f13;
+      color: #e2e2e2;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.4rem; letter-spacing: -0.5px; }
+    .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 2rem; }
+    .card {
+      background: #1a1a22;
+      border: 1px solid #2a2a35;
+      border-radius: 16px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+    .drop-zone {
+      border: 2px dashed #3a3a50;
+      border-radius: 12px;
+      padding: 2.5rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+    .drop-zone.dragover { border-color: #7c6af7; background: #1e1b30; }
+    .drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .drop-zone .icon { font-size: 2.2rem; margin-bottom: 0.5rem; }
+    .drop-zone p { color: #888; font-size: 0.88rem; }
+    .drop-zone p span { color: #a89cf7; text-decoration: underline; }
+    #preview-wrap { display: none; text-align: center; }
+    #preview {
+      max-width: 100%; max-height: 260px;
+      border-radius: 10px; object-fit: contain; border: 1px solid #2a2a35;
+    }
+    button#analyze-btn {
+      background: #7c6af7; color: #fff; border: none;
+      border-radius: 10px; padding: 0.75rem;
+      font-size: 1rem; font-weight: 600; cursor: pointer;
+      transition: background 0.2s, opacity 0.2s; display: none;
+    }
+    button#analyze-btn:hover { background: #6a58e0; }
+    button#analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    #result { display: none; }
+    .result-label {
+      font-size: 1.5rem; font-weight: 700; text-align: center;
+      padding: 0.6rem 1.2rem; border-radius: 8px; margin-bottom: 1rem;
+    }
+    .result-label.fake { background: #3b1a1a; color: #f87171; }
+    .result-label.real { background: #0f2e1f; color: #4ade80; }
+    .bar-row { display: flex; flex-direction: column; gap: 0.5rem; }
+    .bar-label { display: flex; justify-content: space-between; font-size: 0.85rem; color: #aaa; }
+    .bar-track { background: #2a2a35; border-radius: 99px; height: 10px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 99px; transition: width 0.6s ease; }
+    .bar-fill.fake { background: #f87171; }
+    .bar-fill.real { background: #4ade80; }
+    .spinner {
+      display: none; width: 28px; height: 28px;
+      border: 3px solid #3a3a50; border-top-color: #7c6af7;
+      border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-msg { color: #f87171; font-size: 0.85rem; text-align: center; display: none; }
+    .reset-btn {
+      background: none; border: 1px solid #3a3a50; color: #888;
+      border-radius: 8px; padding: 0.5rem; font-size: 0.85rem;
+      cursor: pointer; transition: border-color 0.2s, color 0.2s; display: none;
+    }
+    .reset-btn:hover { border-color: #7c6af7; color: #a89cf7; }
+  </style>
+</head>
+<body>
+  <h1>Deepfake Detector</h1>
+  <p class="subtitle">Upload a face image to check if it's real or AI-generated</p>
+
+  <div class="card">
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.webp" />
+      <div class="icon">🖼️</div>
+      <p>Drag &amp; drop an image or <span>browse</span></p>
+      <p>JPG, PNG, WEBP — max 10 MB</p>
+    </div>
+
+    <div id="preview-wrap">
+      <img id="preview" src="" alt="Preview" />
+    </div>
+
+    <div class="spinner" id="spinner"></div>
+    <p class="error-msg" id="error-msg"></p>
+
+    <button id="analyze-btn">Analyze Image</button>
+
+    <div id="result">
+      <div class="result-label" id="result-label"></div>
+      <div class="bar-row">
+        <div class="bar-label"><span>Fake</span><span id="fake-pct">0%</span></div>
+        <div class="bar-track"><div class="bar-fill fake" id="fake-bar" style="width:0%"></div></div>
+      </div>
+      <div class="bar-row" style="margin-top:0.6rem">
+        <div class="bar-label"><span>Real</span><span id="real-pct">0%</span></div>
+        <div class="bar-track"><div class="bar-fill real" id="real-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <button class="reset-btn" id="reset-btn">Try another image</button>
+  </div>
+
+  <script>
+    const dropZone    = document.getElementById('drop-zone');
+    const fileInput   = document.getElementById('file-input');
+    const previewWrap = document.getElementById('preview-wrap');
+    const preview     = document.getElementById('preview');
+    const analyzeBtn  = document.getElementById('analyze-btn');
+    const spinner     = document.getElementById('spinner');
+    const errorMsg    = document.getElementById('error-msg');
+    const result      = document.getElementById('result');
+    const resultLabel = document.getElementById('result-label');
+    const fakeBar     = document.getElementById('fake-bar');
+    const realBar     = document.getElementById('real-bar');
+    const fakePct     = document.getElementById('fake-pct');
+    const realPct     = document.getElementById('real-pct');
+    const resetBtn    = document.getElementById('reset-btn');
+
+    let selectedFile = null;
+
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const f = e.dataTransfer.files[0];
+      if (f) handleFile(f);
+    });
+    fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+    function handleFile(file) {
+      selectedFile = file;
+      preview.src = URL.createObjectURL(file);
+      previewWrap.style.display = 'block';
+      analyzeBtn.style.display = 'block';
+      result.style.display = 'none';
+      resetBtn.style.display = 'none';
+      errorMsg.style.display = 'none';
+    }
+
+    analyzeBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+      analyzeBtn.disabled = true;
+      spinner.style.display = 'block';
+      errorMsg.style.display = 'none';
+      result.style.display = 'none';
+
+      const form = new FormData();
+      form.append('image', selectedFile);
+
+      try {
+        const res = await fetch('https://mitrabrindaa-deepfake-api.hf.space//predict', { method: 'POST', body: form });
+        const data = await res.json();
+        if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail || data));
+        if (data.success === false) throw new Error(data.error || 'Inference failed');
+        console.log('API response:', data);
+
+        const label = data.label ?? data.prediction ?? data.result;
+        if (!label) throw new Error('Unexpected response: ' + JSON.stringify(data));
+
+        const pFake = data.prob_fake ?? data.fake_prob ?? null;
+        const pReal = data.prob_real ?? data.real_prob ?? (pFake !== null ? +(100 - pFake).toFixed(2) : null);
+
+        resultLabel.textContent = label.toUpperCase();
+        resultLabel.className = 'result-label ' + label.toLowerCase();
+        fakeBar.style.width = (pFake ?? 0) + '%';
+        realBar.style.width = (pReal ?? 0) + '%';
+        fakePct.textContent = pFake !== null ? pFake + '%' : 'N/A';
+        realPct.textContent = pReal !== null ? pReal + '%' : 'N/A';
+
+        result.style.display = 'block';
+        resetBtn.style.display = 'block';
+        analyzeBtn.style.display = 'none';
+      } catch (err) {
+        errorMsg.textContent = err.message || 'Something went wrong.';
+        errorMsg.style.display = 'block';
+      } finally {
+        spinner.style.display = 'none';
+        analyzeBtn.disabled = false;
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      selectedFile = null;
+      fileInput.value = '';
+      preview.src = '';
+      previewWrap.style.display = 'none';
+      analyzeBtn.style.display = 'none';
+      result.style.display = 'none';
+      resetBtn.style.display = 'none';
+      errorMsg.style.display = 'none';
+    });
+  </script>
+</body>
+</html>

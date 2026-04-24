@@ -1,11 +1,11 @@
 {
-  "test_accuracy": 0.7666666666666667,
-  "test_roc_auc_fake": 0.9066666666666667,
-  "best_val_accuracy": 0.6,
-  "n_train": 240,
-  "n_val": 30,
-  "n_test": 30,
+  "test_accuracy": 0.7318501170960188,
+  "test_roc_auc_fake": 0.8036626098974929,
+  "best_val_accuracy": 0.8,
+  "n_train": 6830,
+  "n_val": 854,
+  "n_test": 854,
   "ensemble": true,
   "device": "cpu",
-  "classification_report": "              precision    recall  f1-score   support\n\n        real     0.7000    0.9333    0.8000        15\n        fake     0.9000    0.6000    0.7200        15\n\n    accuracy                         0.7667        30\n   macro avg     0.8000    0.7667    0.7600        30\nweighted avg     0.8000    0.7667    0.7600        30\n"
+  "classification_report": "              precision    recall  f1-score   support\n\n        real     0.7162    0.7681    0.7412       427\n        fake     0.7500    0.6956    0.7217       427\n\n    accuracy                         0.7319       854\n   macro avg     0.7331    0.7319    0.7315       854\nweighted avg     0.7331    0.7319    0.7315       854\n"
 }
