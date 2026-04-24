@@ -172,7 +172,7 @@
       form.append('image', selectedFile);
 
       try {
-        const res = await fetch('https://mitrabrindaa-deepfake-api.hf.space//predict', { method: 'POST', body: form });
+        const res = await fetch('https://mitrabrindaa-deepfake-api.hf.space/predict', { method: 'POST', body: form });
         const data = await res.json();
         if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail || data));
         if (data.success === false) throw new Error(data.error || 'Inference failed');
