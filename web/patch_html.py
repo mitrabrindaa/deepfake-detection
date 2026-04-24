@@ -113,7 +113,7 @@ new_script = """<script>
       result.style.display = 'none';
 
       const form = new FormData();
-      form.append('image', selectedFile);
+      form.append('file', selectedFile);
 
       try {
         const res  = await fetch('/predict', { method: 'POST', body: form });
